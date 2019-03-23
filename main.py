@@ -36,10 +36,10 @@ def parse(source_code):
 if not os.path.exists(handle):
     os.makedirs(handle)
 
-user_info = urllib.urlopen(USER_INFO_URL.format(handle=handle, count=MAX_SUBS)).read()
+user_info = urllib.request.urlopen(USER_INFO_URL.format(handle=handle, count=MAX_SUBS)).read()
 dic = json.loads(user_info)
 if dic['status'] != u'OK':
-    print 'Oops.. Something went wrong...'
+    print('Oops.. Something went wrong...')
     exit(0)
 
 submissions = dic['result']
@@ -50,7 +50,7 @@ for submission in submissions:
         con_id, sub_id = submission['contestId'], submission['id'],
         prob_name, prob_id = submission['problem']['name'], submission['problem']['index']
         comp_lang = submission['programmingLanguage']
-        submission_info = urllib.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)).read()
+        submission_info = urllib.request.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)).read()
 
         start_pos = submission_info.find(SOURCE_CODE_BEGIN, MAGIC_START_POINT) + len(SOURCE_CODE_BEGIN)
         end_pos = submission_info.find("</pre>", start_pos)
@@ -62,11 +62,11 @@ for submission in submissions:
             os.makedirs(new_directory)
 
         if platform.system() == 'Windows':
-            prob_name = re.sub('[\\\:*?"<>|/]', '', prob_name)
+            prob_name = re.sub('[\\:*?"<>|/]', '', prob_name)
 
         file = open(new_directory + '/' + prob_id + '[ ' + prob_name + ' ]' + '.' + ext, 'w')
-	file.write(result)
-	file.close()
+    file.write(result)
+    file.close()
 end_time = time.time()
 
-print 'Execution time %d seconds' % int(end_time - start_time)
+print('Execution time %d seconds' % int(end_time - start_time))
