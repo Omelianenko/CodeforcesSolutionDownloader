@@ -1,4 +1,4 @@
-import urllib
+import urllib.request as urllib
 import json
 import time, os
 import platform
@@ -6,18 +6,18 @@ import re
 
 MAX_SUBS = 1000000
 MAX_CF_CONTEST_ID = 1140
-MAGIC_START_POINT = 17000
+MAGIC_START_POINT = 1
 
-handle='-your-handle-here-'
+handle='omelianenko'
 
-SOURCE_CODE_BEGIN = '<pre class="prettyprint program-source" style="padding: 0.5em;">'
+SOURCE_CODE_BEGIN = 'program-source" style="padding: 0.5em;">'
 SUBMISSION_URL = 'http://codeforces.com/contest/{ContestId}/submission/{SubmissionId}'
 USER_INFO_URL = 'http://codeforces.com/api/user.status?handle={handle}&from=1&count={count}'
 
 EXT = {'C++': 'cpp', 'C': 'c', 'Java': 'java', 'Python': 'py', 'Delphi': 'dpr', 'FPC': 'pas', 'C#': 'cs'}
 EXT_keys = EXT.keys()
 
-replacer = {'&quot;': '\"', '&gt;': '>', '&lt;': '<', '&amp;': '&', "&apos;": "'"}
+replacer = {'&quot;': '\"', '&gt;': '>', '&lt;': '<', '&amp;': '&', "&apos;": "'", "&#39;": "'"}
 keys = replacer.keys()
 
 def get_ext(comp_lang):
@@ -35,8 +35,7 @@ def parse(source_code):
 
 if not os.path.exists(handle):
     os.makedirs(handle)
-
-user_info = urllib.request.urlopen(USER_INFO_URL.format(handle=handle, count=MAX_SUBS)).read()
+user_info = urllib.urlopen(USER_INFO_URL.format(handle=handle, count=MAX_SUBS)).read()
 dic = json.loads(user_info)
 if dic['status'] != u'OK':
     print('Oops.. Something went wrong...')
@@ -46,15 +45,17 @@ submissions = dic['result']
 start_time = time.time()
 
 for submission in submissions:
-    if submission['verdict'] == u'OK' and submission['contestId'] < MAX_CF_CONTEST_ID:
+    if submission['verdict'] == u'OK' and submission['contestId'] <= MAX_CF_CONTEST_ID:
         con_id, sub_id = submission['contestId'], submission['id'],
         prob_name, prob_id = submission['problem']['name'], submission['problem']['index']
         comp_lang = submission['programmingLanguage']
-        submission_info = urllib.request.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)).read()
+
+        with urllib.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)) as rsq:
+            submission_info = rsq.read().decode()
 
         start_pos = submission_info.find(SOURCE_CODE_BEGIN, MAGIC_START_POINT) + len(SOURCE_CODE_BEGIN)
         end_pos = submission_info.find("</pre>", start_pos)
-        result = parse(submission_info[start_pos:end_pos]).replace('\r', '')
+        result = parse(submission_info[start_pos:end_pos]).replace('\r', '').replace("'", '"')
         ext = get_ext(comp_lang)
 
         new_directory = handle + '/' + str(con_id)
@@ -64,9 +65,11 @@ for submission in submissions:
         if platform.system() == 'Windows':
             prob_name = re.sub('[\\:*?"<>|/]', '', prob_name)
 
-        file = open(new_directory + '/' + prob_id + '[ ' + prob_name + ' ]' + '.' + ext, 'w')
-    file.write(result)
-    file.close()
+        file = open(new_directory + '/' + prob_id + '[' + prob_name + ']' + '.' + ext, 'w')
+        
+        file.write(result)
+        file.close()
 end_time = time.time()
 
 print('Execution time %d seconds' % int(end_time - start_time))
+
